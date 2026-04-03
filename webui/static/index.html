@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LangExtract · Workspace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- ─── Left sidebar: projects & conversations ─── -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo">
+          <span class="logo-icon">⬡</span>
+          <span class="logo-text">LangExtract</span>
+        </div>
+        <button id="btn-new-chat" class="btn-icon" title="New chat">+</button>
+      </div>
+
+      <!-- Endpoint & Model selector -->
+      <div class="sidebar-section">
+        <div class="section-label">ENDPOINT</div>
+        <select id="sel-endpoint" class="select-dark"></select>
+        <div class="endpoint-status" id="endpoint-status"></div>
+      </div>
+      <div class="sidebar-section">
+        <div class="section-label">MODEL</div>
+        <select id="sel-model" class="select-dark"></select>
+      </div>
+
+      <!-- Projects -->
+      <div class="sidebar-section">
+        <div class="section-label">
+          PROJECTS
+          <button id="btn-new-project" class="btn-tiny" title="New project">+</button>
+        </div>
+        <div id="project-list" class="item-list"></div>
+      </div>
+
+      <!-- Conversations -->
+      <div class="sidebar-section flex-grow">
+        <div class="section-label">CONVERSATIONS</div>
+        <div id="conversation-list" class="item-list"></div>
+      </div>
+
+      <!-- Skills -->
+      <div class="sidebar-section">
+        <div class="section-label">SKILLS</div>
+        <div id="skills-list" class="skills-grid"></div>
+      </div>
+    </aside>
+
+    <!-- ─── Main area ─── -->
+    <main id="main">
+      <!-- Top bar -->
+      <div id="topbar">
+        <button id="btn-toggle-sidebar" class="btn-icon">☰</button>
+        <div id="topbar-title">New chat</div>
+        <div id="topbar-meta">
+          <span id="topbar-project" class="tag"></span>
+          <span id="topbar-model" class="tag"></span>
+        </div>
+        <button id="btn-toggle-panel" class="btn-icon" title="Toggle file panel">⊞</button>
+      </div>
+
+      <div id="workspace">
+        <!-- Chat area -->
+        <div id="chat-area">
+          <!-- Welcome screen -->
+          <div id="welcome" class="welcome-screen">
+            <div class="welcome-icon">⬡</div>
+            <h2>LangExtract Workspace</h2>
+            <p class="dim">Connect to your LLMs, manage projects, and collaborate with AI.</p>
+            <div class="welcome-hints">
+              <div class="hint" data-msg="List the files in this project">
+                <span class="hint-icon">📁</span> Browse project files
+              </div>
+              <div class="hint" data-msg="Help me write a Python script that extracts entities from text">
+                <span class="hint-icon">🔧</span> Start coding
+              </div>
+              <div class="hint" data-msg="Search for TODO comments in the codebase">
+                <span class="hint-icon">🔍</span> Search the project
+              </div>
+              <div class="hint" data-msg="Run the tests and show me the results">
+                <span class="hint-icon">▶</span> Run commands
+              </div>
+            </div>
+          </div>
+
+          <!-- Messages -->
+          <div id="messages"></div>
+
+          <!-- Streaming indicator -->
+          <div id="typing-indicator" class="hidden">
+            <div class="typing-dots"><span></span><span></span><span></span></div>
+          </div>
+        </div>
+
+        <!-- Right panel: file viewer -->
+        <div id="file-panel" class="hidden">
+          <div class="panel-header">
+            <span id="panel-title">Files</span>
+            <button id="btn-close-panel" class="btn-icon">✕</button>
+          </div>
+          <div id="file-tree"></div>
+          <div id="file-viewer" class="hidden">
+            <div class="file-viewer-header">
+              <span id="file-viewer-path"></span>
+              <button id="btn-close-file" class="btn-icon">✕</button>
+            </div>
+            <pre id="file-viewer-content"><code></code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div id="input-area">
+        <div id="input-context" class="hidden">
+          <span id="input-context-text"></span>
+          <button id="btn-clear-context" class="btn-icon">✕</button>
+        </div>
+        <div id="input-row">
+          <textarea id="input" placeholder="Message your LLM... (Shift+Enter for newline)" rows="1"></textarea>
+          <button id="btn-send" class="btn-send" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>
+            </svg>
+          </button>
+        </div>
+        <div id="input-footer">
+          <span class="dim">Shift+Enter new line · /skill to use a skill · Connected to <span id="footer-endpoint">—</span></span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
