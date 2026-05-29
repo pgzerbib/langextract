@@ -4,8 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Vision Jet — Carte de rayon d'action</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   :root{
     --bg:#0e1116; --panel:#171c24; --panel2:#1e2430; --line:#2a323f;
@@ -14,7 +13,8 @@
   *{box-sizing:border-box}
   html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt)}
   #app{display:flex;height:100%;overflow:hidden}
-  #map{flex:1;height:100%}
+  #map{flex:1;height:100%;background:#aab2bd}
+  #maperr{display:none;padding:20px;color:#ff7a7a;font-size:14px}
   #panel{width:360px;min-width:360px;height:100%;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:18px 18px 40px}
   h1{font-size:18px;margin:0 0 2px}
   .sub{color:var(--muted);font-size:12.5px;margin:0 0 16px;line-height:1.45}
@@ -47,7 +47,7 @@
 </head>
 <body>
 <div id="app">
-  <div id="map"></div>
+  <div id="map"><div id="maperr">⚠️ La librairie de carte (Leaflet) n'a pas pu se charger. Vérifie ta connexion réseau, ou ouvre la page via GitHub Pages.</div></div>
   <aside id="panel">
     <h1>Vision Jet — Rayon d'action</h1>
     <p class="sub">Cessna SF50 Vision Jet (G2/G2+). Clique n'importe où sur la carte pour déplacer le point d'origine, ou cherche une ville ci-dessous.</p>
@@ -98,9 +98,13 @@
   </aside>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+function boot(){
+if(typeof L === 'undefined'){
+  document.getElementById('maperr').style.display='block';
+  return;
+}
 const NM_TO_KM = 1.852;
 const R_EARTH_KM = 6371.0088;
 
@@ -257,6 +261,9 @@ search.addEventListener('keydown', async e=>{
 });
 
 redraw();
+}
+if(document.readyState === 'complete') boot();
+else window.addEventListener('load', boot);
 </script>
 </body>
 </html>
