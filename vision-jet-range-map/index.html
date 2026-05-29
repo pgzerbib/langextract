@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Vision Jet — Carte de rayon d'action</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  :root{
+    --bg:#0e1116; --panel:#171c24; --panel2:#1e2430; --line:#2a323f;
+    --txt:#e7edf5; --muted:#9aa7b8; --accent:#4ea3ff; --accent2:#ffd24e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--txt)}
+  #app{display:flex;height:100%;overflow:hidden}
+  #map{flex:1;height:100%}
+  #panel{width:360px;min-width:360px;height:100%;overflow-y:auto;background:var(--panel);border-left:1px solid var(--line);padding:18px 18px 40px}
+  h1{font-size:18px;margin:0 0 2px}
+  .sub{color:var(--muted);font-size:12.5px;margin:0 0 16px;line-height:1.45}
+  .card{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 10px}
+  label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
+  input[type=text]{width:100%;padding:9px 10px;background:#0e1218;border:1px solid var(--line);border-radius:8px;color:var(--txt);font-size:14px}
+  input[type=range]{width:100%}
+  .row{display:flex;gap:8px;align-items:center}
+  .btn{appearance:none;border:1px solid var(--line);background:#0e1218;color:var(--txt);padding:8px 10px;border-radius:8px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:var(--accent);color:#04101f;border-color:var(--accent);font-weight:600}
+  .val{font-variant-numeric:tabular-nums;font-weight:600}
+  .ringkey{display:flex;align-items:center;gap:8px;font-size:13px;margin:6px 0}
+  .swatch{width:14px;height:14px;border-radius:3px;flex:none}
+  .dest{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:5px 0;border-bottom:1px dashed var(--line)}
+  .dest:last-child{border-bottom:0}
+  .dest .nm{color:var(--muted);font-variant-numeric:tabular-nums}
+  .ok{color:#5fd38d} .lim{color:var(--accent2)} .no{color:#ff7a7a}
+  .stat{display:flex;justify-content:space-between;font-size:13px;padding:3px 0}
+  .stat span:last-child{font-weight:600;font-variant-numeric:tabular-nums}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.4}
+  a{color:var(--accent)}
+  .legendpill{font-size:11px;color:var(--muted)}
+  #searchResults{list-style:none;margin:6px 0 0;padding:0}
+  #searchResults li{padding:7px 9px;background:#0e1218;border:1px solid var(--line);border-radius:7px;margin-bottom:5px;font-size:12.5px;cursor:pointer}
+  #searchResults li:hover{border-color:var(--accent)}
+  .toggle{display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="map"></div>
+  <aside id="panel">
+    <h1>Vision Jet — Rayon d'action</h1>
+    <p class="sub">Cessna SF50 Vision Jet (G2/G2+). Clique n'importe où sur la carte pour déplacer le point d'origine, ou cherche une ville ci-dessous.</p>
+
+    <div class="card">
+      <h2>Point d'origine</h2>
+      <input id="search" type="text" placeholder="Ville (ex. Munich, Lisbon…) puis Entrée" />
+      <ul id="searchResults"></ul>
+      <div class="stat" style="margin-top:8px"><span>Position</span><span id="origin">—</span></div>
+      <div class="row" style="margin-top:10px">
+        <button class="btn primary" id="btnMunich">Munich</button>
+        <button class="btn" id="btnLocate">Ma position</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Profil de mission</h2>
+      <label>Rayon d'action sélectionné : <span class="val" id="rangeLbl"></span></label>
+      <input id="rangeSlider" type="range" min="700" max="1275" step="25" value="1100" />
+      <div class="row" style="justify-content:space-between;font-size:11px;color:var(--muted)">
+        <span>700 NM</span><span>1275 NM (max)</span>
+      </div>
+
+      <label>Vitesse de croisière : <span class="val" id="speedLbl"></span></label>
+      <input id="speedSlider" type="range" min="240" max="311" step="1" value="305" />
+
+      <div class="stat" style="margin-top:10px"><span>Distance</span><span id="kmOut"></span></div>
+      <div class="stat"><span>Endurance estimée</span><span id="endOut"></span></div>
+      <p class="hint">Le rayon « pratique » tient compte des réserves IFR, du vent et de la charge. Les valeurs réelles varient selon le chargement et la météo.</p>
+    </div>
+
+    <div class="card">
+      <h2>Anneaux affichés</h2>
+      <div class="toggle"><input type="checkbox" id="ckRings" checked><label for="ckRings" style="margin:0;color:var(--txt)">Afficher les 3 anneaux de référence</label></div>
+      <div class="ringkey"><span class="swatch" style="background:#5fd38d"></span> Conservateur — 950 NM (≈1 760 km)</div>
+      <div class="ringkey"><span class="swatch" style="background:#4ea3ff"></span> Nominal — 1 100 NM (≈2 040 km)</div>
+      <div class="ringkey"><span class="swatch" style="background:#ffd24e"></span> Max — 1 275 NM (≈2 360 km)</div>
+      <div class="ringkey"><span class="swatch" style="background:#ff7a7a;opacity:.9"></span> Anneau réglable (slider)</div>
+    </div>
+
+    <div class="card">
+      <h2>Destinations</h2>
+      <p class="legendpill">Distances directes (grand cercle) depuis l'origine. Statut basé sur le rayon réglable.</p>
+      <div id="destList"></div>
+    </div>
+
+    <p class="hint">Carte © OpenStreetMap. Outil indicatif, ne pas utiliser pour la planification de vol réelle.</p>
+  </aside>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+const NM_TO_KM = 1.852;
+const R_EARTH_KM = 6371.0088;
+
+// Anneaux de référence (NM)
+const RINGS = [
+  {nm:950,  color:'#5fd38d', label:'Conservateur'},
+  {nm:1100, color:'#4ea3ff', label:'Nominal'},
+  {nm:1275, color:'#ffd24e', label:'Max'},
+];
+
+// Destinations européennes courantes (lat, lon)
+const DESTS = [
+  ['Paris',48.8566,2.3522],['Londres',51.5074,-0.1278],['Madrid',40.4168,-3.7038],
+  ['Lisbonne',38.7223,-9.1393],['Barcelone',41.3874,2.1686],['Rome',41.9028,12.4964],
+  ['Naples',40.8518,14.2681],['Stockholm',59.3293,18.0686],['Oslo',59.9139,10.7522],
+  ['Varsovie',52.2297,21.0122],['Bucarest',44.4268,26.1025],['Athènes',37.9838,23.7275],
+  ['Istanbul',41.0082,28.9784],['Reykjavik',64.1466,-21.9426],['Dubaï',25.2048,55.2708],
+  ['New York',40.7128,-74.0060],['Las Palmas',28.1235,-15.4363],['Moscou',55.7558,37.6173],
+];
+
+const MUNICH = [48.1351,11.5820];
+
+const map = L.map('map',{worldCopyJump:true}).setView(MUNICH, 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+  maxZoom:19, attribution:'© OpenStreetMap'
+}).addTo(map);
+
+// --- Géodésie : point de destination depuis origine + cap + distance ---
+function destPoint(lat, lon, bearingDeg, distKm){
+  const δ = distKm / R_EARTH_KM;
+  const θ = bearingDeg * Math.PI/180;
+  const φ1 = lat*Math.PI/180, λ1 = lon*Math.PI/180;
+  const sinφ2 = Math.sin(φ1)*Math.cos(δ) + Math.cos(φ1)*Math.sin(δ)*Math.cos(θ);
+  const φ2 = Math.asin(sinφ2);
+  const y = Math.sin(θ)*Math.sin(δ)*Math.cos(φ1);
+  const x = Math.cos(δ) - Math.sin(φ1)*sinφ2;
+  const λ2 = λ1 + Math.atan2(y, x);
+  return [φ2*180/Math.PI, ((λ2*180/Math.PI)+540)%360-180];
+}
+function geodesicCircle(lat, lon, distKm, steps=180){
+  const pts=[];
+  for(let i=0;i<=steps;i++){ pts.push(destPoint(lat,lon,i*360/steps,distKm)); }
+  return pts;
+}
+function haversineKm(la1,lo1,la2,lo2){
+  const φ1=la1*Math.PI/180, φ2=la2*Math.PI/180;
+  const dφ=(la2-la1)*Math.PI/180, dλ=(lo2-lo1)*Math.PI/180;
+  const a=Math.sin(dφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(dλ/2)**2;
+  return 2*R_EARTH_KM*Math.asin(Math.sqrt(a));
+}
+
+// --- État ---
+let origin = MUNICH.slice();
+let ringLayers = [];
+let adjustLayer = null;
+let originMarker = L.marker(origin,{draggable:true}).addTo(map);
+originMarker.on('dragend', e=>{ const p=e.target.getLatLng(); setOrigin(p.lat,p.lng,false); });
+
+const $ = id=>document.getElementById(id);
+
+function selectedNm(){ return +$('rangeSlider').value; }
+function selectedSpeed(){ return +$('speedSlider').value; }
+
+function redraw(){
+  ringLayers.forEach(l=>map.removeLayer(l)); ringLayers=[];
+  if(adjustLayer){map.removeLayer(adjustLayer);adjustLayer=null;}
+
+  if($('ckRings').checked){
+    RINGS.forEach(r=>{
+      const poly = L.polygon(geodesicCircle(origin[0],origin[1], r.nm*NM_TO_KM),{
+        color:r.color, weight:2, fillColor:r.color, fillOpacity:0.05
+      }).addTo(map);
+      poly.bindTooltip(`${r.label} — ${r.nm} NM`,{sticky:true});
+      ringLayers.push(poly);
+    });
+  }
+  // Anneau réglable
+  const nm = selectedNm();
+  adjustLayer = L.polygon(geodesicCircle(origin[0],origin[1], nm*NM_TO_KM),{
+    color:'#ff7a7a', weight:2.5, dashArray:'6 5', fillColor:'#ff7a7a', fillOpacity:0.07
+  }).addTo(map);
+  adjustLayer.bindTooltip(`Rayon réglable — ${nm} NM`,{sticky:true});
+
+  updateInfo();
+  updateDests();
+}
+
+function updateInfo(){
+  const nm=selectedNm(), spd=selectedSpeed();
+  const km=nm*NM_TO_KM;
+  $('rangeLbl').textContent = `${nm} NM (≈ ${Math.round(km)} km)`;
+  $('speedLbl').textContent = `${spd} kt (≈ ${Math.round(spd*NM_TO_KM)} km/h)`;
+  $('kmOut').textContent = `${Math.round(km)} km`;
+  const hrs = nm/spd;
+  const h=Math.floor(hrs), m=Math.round((hrs-h)*60);
+  $('endOut').textContent = `${h} h ${String(m).padStart(2,'0')}`;
+  $('origin').textContent = `${origin[0].toFixed(3)}, ${origin[1].toFixed(3)}`;
+}
+
+function updateDests(){
+  const nm=selectedNm();
+  const rows = DESTS.map(([name,la,lo])=>{
+    const km=haversineKm(origin[0],origin[1],la,lo);
+    const dnm=km/NM_TO_KM;
+    return {name,la,lo,km,dnm};
+  }).sort((a,b)=>a.km-b.km);
+  $('destList').innerHTML = rows.map(d=>{
+    let cls='ok', tag='OK';
+    if(d.dnm > nm){ cls='no'; tag='hors portée'; }
+    else if(d.dnm > nm*0.9){ cls='lim'; tag='limite'; }
+    return `<div class="dest"><span><span class="${cls}">●</span> ${d.name}</span>`+
+           `<span class="nm">${Math.round(d.km)} km · ${Math.round(d.dnm)} NM</span></div>`;
+  }).join('');
+}
+
+function setOrigin(lat,lon,recenter=true){
+  origin=[lat,lon];
+  originMarker.setLatLng(origin);
+  if(recenter) map.panTo(origin);
+  redraw();
+}
+
+// --- Interactions ---
+map.on('click', e=> setOrigin(e.latlng.lat, e.latlng.lng, false));
+$('rangeSlider').addEventListener('input', redraw);
+$('speedSlider').addEventListener('input', updateInfo);
+$('ckRings').addEventListener('change', redraw);
+$('btnMunich').addEventListener('click', ()=>{ setOrigin(MUNICH[0],MUNICH[1]); map.setView(MUNICH,5); });
+$('btnLocate').addEventListener('click', ()=>{
+  if(!navigator.geolocation){ alert('Géolocalisation indisponible'); return; }
+  navigator.geolocation.getCurrentPosition(p=>{ setOrigin(p.coords.latitude,p.coords.longitude); map.setView(origin,6); },
+    ()=>alert('Position refusée'));
+});
+
+// --- Recherche (Nominatim) ---
+const search=$('search'), results=$('searchResults');
+search.addEventListener('keydown', async e=>{
+  if(e.key!=='Enter') return;
+  const q=search.value.trim(); if(!q) return;
+  results.innerHTML='<li>Recherche…</li>';
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`,
+      {headers:{'Accept':'application/json'}});
+    const data=await r.json();
+    if(!data.length){ results.innerHTML='<li>Aucun résultat</li>'; return; }
+    results.innerHTML='';
+    data.forEach(it=>{
+      const li=document.createElement('li');
+      li.textContent=it.display_name;
+      li.onclick=()=>{ setOrigin(+it.lat,+it.lon); map.setView(origin,6); results.innerHTML=''; search.value=it.display_name.split(',')[0]; };
+      results.appendChild(li);
+    });
+  }catch(err){ results.innerHTML='<li>Erreur réseau (recherche indisponible)</li>'; }
+});
+
+redraw();
+</script>
+</body>
+</html>
